@@ -4,8 +4,13 @@ import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import GroupMembers from '../components/GroupMembers';
 import InviteLink from '../components/InviteLink';
+import ActivityProposalForm from '../components/ActivityProposalForm';
+import ActivityList from '../components/ActivityList';
+import ActivityNotification from '../components/ActivityNotification';
 import { apiClient } from '../services/apiClient';
 import { useAuth } from '../contexts/AuthContext';
+import { useSocket } from '../contexts/SocketContext';
+import { useRealTimeActivities } from '../hooks/useRealTimeActivities';
 
 interface Group {
   id: string;
@@ -32,11 +37,23 @@ const GroupDetailPage: React.FC = () => {
   const { groupId } = useParams<{ groupId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isConnected } = useSocket();
   const [group, setGroup] = useState<Group | null>(null);
-  const [activities, setActivities] = useState<Activity[]>([]);
+  const [initialActivities, setInitialActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showInviteLink, setShowInviteLink] = useState(false);
+  const [showProposalForm, setShowProposalForm] = useState(false);
+
+  // Use real-time activities hook
+  const { 
+    activities, 
+    newActivityNotification, 
+    dismissNotification 
+  } = useRealTimeActivities({
+    groupId: groupId || '',
+    initialActivities
+  });
 
   useEffect(() => {
     if (groupId) {
@@ -63,13 +80,18 @@ const GroupDetailPage: React.FC = () => {
   const fetchActivities = async () => {
     try {
       const response = await apiClient.get(`/groups/${groupId}/activities`);
-      setActivities(response.data.activities);
+      setInitialActivities(response.data.activities);
     } catch (err: any) {
       // Activities might not be accessible if user isn't a member
       console.error('Failed to fetch activities:', err);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleActivityCreated = (newActivity: Activity) => {
+    setShowProposalForm(false);
+    // The real-time hook will handle adding the activity to the list
   };
 
   const formatDate = (dateString: string) => {
@@ -142,7 +164,9 @@ const GroupDetailPage: React.FC = () => {
             <Button variant="outline" onClick={() => setShowInviteLink(!showInviteLink)}>
               {showInviteLink ? 'Hide' : 'Share'} Invite Link
             </Button>
-            <Button>Propose Activity</Button>
+            <Button onClick={() => setShowProposalForm(true)}>
+              Propose Activity
+            </Button>
           </div>
         </div>
       </div>
@@ -157,43 +181,27 @@ const GroupDetailPage: React.FC = () => {
 
         <div className="group-detail-grid">
           <div className="group-detail-main">
-            <Card>
-              <div className="activities-section">
-                <h3>Activities</h3>
-                
-                {activities.length === 0 ? (
-                  <div className="empty-state">
-                    <p>No activities yet</p>
-                    <p>Be the first to propose an activity for this group!</p>
-                    <Button>Propose First Activity</Button>
+            {showProposalForm ? (
+              <ActivityProposalForm
+                groupId={groupId!}
+                onActivityCreated={handleActivityCreated}
+                onCancel={() => setShowProposalForm(false)}
+              />
+            ) : (
+              <Card>
+                <div className="activities-section">
+                  <div className="activities-header">
+                    <h3>Activities</h3>
+                    <div className="connection-status">
+                      <div className={`connection-indicator ${isConnected ? 'connected' : 'disconnected'}`}></div>
+                      {isConnected ? 'Live updates' : 'Offline'}
+                    </div>
                   </div>
-                ) : (
-                  <div className="activities-list">
-                    {activities.map((activity) => (
-                      <div 
-                        key={activity.id} 
-                        className={`activity-item ${activity.isChosen ? 'activity-chosen' : ''}`}
-                      >
-                        <div className="activity-content">
-                          <h4 className="activity-title">
-                            {activity.title}
-                            {activity.isChosen && (
-                              <span className="activity-chosen-badge">Chosen</span>
-                            )}
-                          </h4>
-                          {activity.description && (
-                            <p className="activity-description">{activity.description}</p>
-                          )}
-                          <span className="activity-date">
-                            Proposed {formatDate(activity.createdAt)}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </Card>
+                  
+                  <ActivityList activities={activities} />
+                </div>
+              </Card>
+            )}
           </div>
 
           <div className="group-detail-sidebar">
@@ -204,6 +212,14 @@ const GroupDetailPage: React.FC = () => {
             />
           </div>
         </div>
+
+        {/* Real-time notification for new activities */}
+        {newActivityNotification && (
+          <ActivityNotification
+            activity={newActivityNotification}
+            onDismiss={dismissNotification}
+          />
+        )}
       </div>
     </div>
   );

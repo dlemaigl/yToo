@@ -125,7 +125,12 @@
   - Create group joining interface for invitation links
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 2.1, 2.2, 2.3, 2.4_
 
-- [ ] 12. Build anonymous activity proposal UI
+- [x] 12. Build anonymous activity proposal UI
+
+
+
+
+
   - Create activity proposal form without user identification
   - Implement activity listing display for group members
   - Build activity status indicators (chosen/not chosen)

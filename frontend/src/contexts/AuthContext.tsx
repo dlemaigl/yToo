@@ -9,6 +9,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
+  token: string | null;
   isAuthenticated: boolean;
   loading: boolean;
   login: (username: string, password: string) => Promise<void>;
@@ -25,6 +26,7 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const refreshToken = async () => {
@@ -45,12 +47,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         localStorage.setItem('refreshToken', newRefreshToken);
       }
       apiClient.setAuthToken(token);
+      setToken(token);
       setUser(userData);
     } catch (error) {
       // Refresh failed, clear all tokens
       localStorage.removeItem('authToken');
       localStorage.removeItem('refreshToken');
       apiClient.setAuthToken(null);
+      setToken(null);
       setUser(null);
       throw error;
     }
@@ -58,11 +62,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     const initializeAuth = async () => {
-      const token = localStorage.getItem('authToken');
-      if (token) {
+      const storedToken = localStorage.getItem('authToken');
+      if (storedToken) {
         try {
           // Set the token in the API client
-          apiClient.setAuthToken(token);
+          apiClient.setAuthToken(storedToken);
+          setToken(storedToken);
           
           // Verify token is still valid by making a request
           const response = await apiClient.get('/auth/me');
@@ -76,6 +81,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             localStorage.removeItem('authToken');
             localStorage.removeItem('refreshToken');
             apiClient.setAuthToken(null);
+            setToken(null);
           }
         }
       }
@@ -99,6 +105,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         localStorage.setItem('refreshToken', newRefreshToken);
       }
       apiClient.setAuthToken(token);
+      setToken(token);
       setUser(userData);
     } catch (error) {
       throw error;
@@ -120,6 +127,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         localStorage.setItem('refreshToken', newRefreshToken);
       }
       apiClient.setAuthToken(token);
+      setToken(token);
       setUser(userData);
     } catch (error) {
       throw error;
@@ -130,11 +138,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('refreshToken');
     apiClient.setAuthToken(null);
+    setToken(null);
     setUser(null);
   };
 
   const value: AuthContextType = {
     user,
+    token,
     isAuthenticated: !!user,
     loading,
     login,
