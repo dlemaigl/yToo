@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import GroupListPage from './pages/GroupListPage';
 import GroupDetailPage from './pages/GroupDetailPage';
+import JoinGroupPage from './pages/JoinGroupPage';
 import './styles/App.css';
 
 function App() {
@@ -25,6 +26,14 @@ function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route
+          path="/join/:inviteToken"
+          element={
+            <ProtectedRoute>
+              <JoinGroupPage />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/"
           element={

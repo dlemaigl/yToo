@@ -1,26 +1,209 @@
-import React from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
+import GroupMembers from '../components/GroupMembers';
+import InviteLink from '../components/InviteLink';
+import { apiClient } from '../services/apiClient';
+import { useAuth } from '../contexts/AuthContext';
+
+interface Group {
+  id: string;
+  name: string;
+  creatorId: string;
+  inviteToken: string;
+  createdAt: string;
+  members: Array<{
+    id: string;
+    username: string;
+    joinedAt: string;
+  }>;
+}
+
+interface Activity {
+  id: string;
+  title: string;
+  description?: string;
+  isChosen: boolean;
+  createdAt: string;
+}
 
 const GroupDetailPage: React.FC = () => {
   const { groupId } = useParams<{ groupId: string }>();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [group, setGroup] = useState<Group | null>(null);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [showInviteLink, setShowInviteLink] = useState(false);
+
+  useEffect(() => {
+    if (groupId) {
+      fetchGroupDetails();
+      fetchActivities();
+    }
+  }, [groupId]);
+
+  const fetchGroupDetails = async () => {
+    try {
+      const response = await apiClient.get(`/groups/${groupId}`);
+      setGroup(response.data.group);
+    } catch (err: any) {
+      if (err.status === 404) {
+        setError('Group not found');
+      } else if (err.status === 403) {
+        setError('You do not have access to this group');
+      } else {
+        setError(err.message || 'Failed to fetch group details');
+      }
+    }
+  };
+
+  const fetchActivities = async () => {
+    try {
+      const response = await apiClient.get(`/groups/${groupId}/activities`);
+      setActivities(response.data.activities);
+    } catch (err: any) {
+      // Activities might not be accessible if user isn't a member
+      console.error('Failed to fetch activities:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="page">
+        <div className="page-content">
+          <div className="loading-state">Loading group details...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="page">
+        <div className="page-content">
+          <Card>
+            <div className="error-state">
+              <h3>Error</h3>
+              <p>{error}</p>
+              <Button onClick={() => navigate('/')}>
+                Back to Groups
+              </Button>
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (!group) {
+    return (
+      <div className="page">
+        <div className="page-content">
+          <Card>
+            <div className="error-state">
+              <h3>Group not found</h3>
+              <Button onClick={() => navigate('/')}>
+                Back to Groups
+              </Button>
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page">
       <div className="page-header">
-        <h1>Group Activities</h1>
-        <Button>Propose Activity</Button>
+        <div className="page-header-content">
+          <div>
+            <h1>{group.name}</h1>
+            <p className="group-subtitle">
+              {group.members.length} {group.members.length === 1 ? 'member' : 'members'}
+            </p>
+          </div>
+          <div className="page-header-actions">
+            <Button variant="outline" onClick={() => setShowInviteLink(!showInviteLink)}>
+              {showInviteLink ? 'Hide' : 'Share'} Invite Link
+            </Button>
+            <Button>Propose Activity</Button>
+          </div>
+        </div>
       </div>
 
       <div className="page-content">
-        <Card>
-          <div className="empty-state">
-            <h3>No activities yet</h3>
-            <p>Be the first to propose an activity for this group!</p>
-            <Button>Propose First Activity</Button>
+        {showInviteLink && (
+          <InviteLink 
+            inviteToken={group.inviteToken} 
+            groupName={group.name}
+          />
+        )}
+
+        <div className="group-detail-grid">
+          <div className="group-detail-main">
+            <Card>
+              <div className="activities-section">
+                <h3>Activities</h3>
+                
+                {activities.length === 0 ? (
+                  <div className="empty-state">
+                    <p>No activities yet</p>
+                    <p>Be the first to propose an activity for this group!</p>
+                    <Button>Propose First Activity</Button>
+                  </div>
+                ) : (
+                  <div className="activities-list">
+                    {activities.map((activity) => (
+                      <div 
+                        key={activity.id} 
+                        className={`activity-item ${activity.isChosen ? 'activity-chosen' : ''}`}
+                      >
+                        <div className="activity-content">
+                          <h4 className="activity-title">
+                            {activity.title}
+                            {activity.isChosen && (
+                              <span className="activity-chosen-badge">Chosen</span>
+                            )}
+                          </h4>
+                          {activity.description && (
+                            <p className="activity-description">{activity.description}</p>
+                          )}
+                          <span className="activity-date">
+                            Proposed {formatDate(activity.createdAt)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </Card>
           </div>
-        </Card>
+
+          <div className="group-detail-sidebar">
+            <GroupMembers 
+              members={group.members}
+              creatorId={group.creatorId}
+              currentUserId={user?.id || ''}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

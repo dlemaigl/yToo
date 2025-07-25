@@ -37,7 +37,7 @@ class ApiClient {
       (response: AxiosResponse) => {
         return response;
       },
-      (error: AxiosError) => {
+      async (error: AxiosError) => {
         const apiError: ApiError = {
           message: 'An unexpected error occurred',
           status: error.response?.status || 500,

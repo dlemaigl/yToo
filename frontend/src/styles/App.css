@@ -212,4 +212,332 @@
   .username {
     font-size: 0.75rem;
   }
+}/* Group
+ Management Styles */
+
+/* Group List Page */
+.groups-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--spacing-lg);
+}
+
+.group-card {
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.group-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.group-card-content {
+  padding: var(--spacing-lg);
+}
+
+.group-name {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: var(--spacing-md);
+}
+
+.group-meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.group-members,
+.group-created {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+/* Group Detail Page */
+.page-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.page-header-actions {
+  display: flex;
+  gap: var(--spacing-md);
+}
+
+.group-subtitle {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  margin-top: var(--spacing-xs);
+}
+
+.group-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: var(--spacing-xl);
+}
+
+.group-detail-main {
+  min-width: 0; /* Prevents grid overflow */
+}
+
+.group-detail-sidebar {
+  /* Sidebar styling */
+}
+
+/* Activities Section */
+.activities-section h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: var(--spacing-lg);
+}
+
+.activities-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.activity-item {
+  padding: var(--spacing-lg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  transition: border-color 0.2s ease;
+}
+
+.activity-item.activity-chosen {
+  border-color: var(--color-success);
+  background-color: #f0fdf4;
+}
+
+.activity-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: var(--spacing-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.activity-chosen-badge {
+  background-color: var(--color-success);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.activity-description {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-sm);
+  line-height: 1.5;
+}
+
+.activity-date {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+/* Group Members Component */
+.group-members h4 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: var(--spacing-lg);
+}
+
+.members-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.member-item {
+  padding: var(--spacing-md);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  background-color: var(--color-background);
+}
+
+.member-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.member-name {
+  font-weight: 500;
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.member-badge {
+  background-color: var(--color-primary);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.member-badge-you {
+  background-color: var(--color-secondary);
+}
+
+.member-joined {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+/* Invite Link Component */
+.invite-link-container h4 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: var(--spacing-sm);
+}
+
+.invite-link-container p {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-lg);
+}
+
+.invite-link-input-group {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.invite-link-input {
+  flex: 1;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: monospace;
+  font-size: 0.875rem;
+  background-color: var(--color-background);
+}
+
+.invite-link-help {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+/* Group Create Form */
+.form-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-lg);
+}
+
+/* Join Group Page */
+.join-group-content {
+  text-align: center;
+  padding: var(--spacing-xl);
+}
+
+.join-group-content h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: var(--spacing-md);
+}
+
+.join-group-content p {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-xl);
+}
+
+.success-state {
+  text-align: center;
+  padding: var(--spacing-2xl);
+}
+
+.success-state h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-success);
+  margin-bottom: var(--spacing-md);
+}
+
+.success-state p {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.error-state {
+  text-align: center;
+  padding: var(--spacing-2xl);
+}
+
+.error-state h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: var(--spacing-md);
+}
+
+.error-state p {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-xl);
+}
+
+.loading-state {
+  text-align: center;
+  padding: var(--spacing-2xl);
+  color: var(--color-text-secondary);
+}
+
+/* Responsive Design for Group Management */
+@media (max-width: 768px) {
+  .groups-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .group-detail-grid {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-lg);
+  }
+  
+  .page-header-content {
+    flex-direction: column;
+    gap: var(--spacing-md);
+    align-items: stretch;
+  }
+  
+  .page-header-actions {
+    justify-content: center;
+  }
+  
+  .invite-link-input-group {
+    flex-direction: column;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .group-card-content {
+    padding: var(--spacing-md);
+  }
+  
+  .activity-item {
+    padding: var(--spacing-md);
+  }
+  
+  .member-item {
+    padding: var(--spacing-sm);
+  }
 }
