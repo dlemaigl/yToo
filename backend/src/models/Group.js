@@ -169,6 +169,13 @@ class Group {
     await db.query(query, [this.id]);
   }
 
+  // Static method to check if user is member of a group
+  static async isUserMember(groupId, userId) {
+    const query = 'SELECT 1 FROM group_members WHERE group_id = $1 AND user_id = $2';
+    const result = await db.query(query, [groupId, userId]);
+    return result.rows.length > 0;
+  }
+
   // Convert to JSON
   toJSON() {
     return {

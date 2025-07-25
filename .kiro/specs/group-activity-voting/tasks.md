@@ -77,7 +77,12 @@
   - Create unit tests for majority calculation logic
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6_
 
-- [ ] 8. Set up real-time WebSocket communication
+- [x] 8. Set up real-time WebSocket communication
+
+
+
+
+
   - Configure Socket.IO server for real-time updates
   - Implement room-based messaging for group-specific events
   - Create WebSocket authentication using JWT tokens

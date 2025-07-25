@@ -1,10 +1,24 @@
 // Main entry point for the backend server
 require('dotenv').config();
 
+const http = require('http');
 const app = require('./app');
 const db = require('./config/database');
+const SocketServer = require('./websocket/socketServer');
+const WebSocketService = require('./services/websocketService');
 
 const PORT = process.env.PORT || 3001;
+
+// Create HTTP server
+const server = http.createServer(app);
+
+// Initialize WebSocket server
+const socketServer = new SocketServer(server);
+const websocketService = new WebSocketService(socketServer);
+
+// Make WebSocket service available to the app
+app.set('websocketService', websocketService);
+app.set('socketServer', socketServer);
 
 // Add database health check to the existing health endpoint
 app.get('/health', async (req, res) => {
@@ -34,10 +48,11 @@ async function startServer() {
       throw new Error('Failed to connect to database');
     }
 
-    // Start server
-    app.listen(PORT, () => {
+    // Start server with WebSocket support
+    server.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
       console.log(`Database connection: ${dbConnected ? 'OK' : 'FAILED'}`);
+      console.log(`WebSocket server initialized`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);
