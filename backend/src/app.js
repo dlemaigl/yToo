@@ -4,6 +4,7 @@ const helmet = require('helmet');
 
 // Import routes
 const authRoutes = require('./routes/auth');
+const groupRoutes = require('./routes/groups');
 const protectedRoutes = require('./routes/protected-example');
 
 const app = express();
@@ -15,6 +16,7 @@ app.use(express.json());
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/groups', groupRoutes);
 app.use('/api', protectedRoutes);
 
 // Health check endpoint

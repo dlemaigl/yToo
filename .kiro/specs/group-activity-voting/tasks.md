@@ -34,14 +34,24 @@
   - Create unit tests for authentication functionality
   - _Requirements: 6.1, 6.2, 6.3, 6.4_
 
-- [ ] 4. Implement group management API
+- [x] 4. Implement group management API
+
+
+
+
+
   - Create group creation endpoint that generates unique invite tokens
   - Implement group joining functionality via invitation links
   - Write group member management and validation logic
   - Create unit tests for group operations
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 2.1, 2.2, 2.3, 2.4_
 
-- [ ] 5. Build anonymous activity proposal system
+- [x] 5. Build anonymous activity proposal system
+
+
+
+
+
   - Create activity creation endpoint that doesn't store creator information
   - Implement activity listing for group members
   - Write validation logic for activity proposals
@@ -55,7 +65,12 @@
   - Create unit tests for voting operations
   - _Requirements: 4.1, 4.2, 4.3, 4.4_
 
-- [ ] 7. Build majority calculation service
+- [x] 7. Build majority calculation service
+
+
+
+
+
   - Implement background service to calculate majority status for activities
   - Create logic to determine when activities achieve >50% of member votes
   - Write functions to handle tie scenarios and status changes
