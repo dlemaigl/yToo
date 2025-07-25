@@ -53,14 +53,49 @@ class ApiClient {
 
         // Handle authentication errors
         if (error.response?.status === 401) {
-          // Token expired or invalid
-          localStorage.removeItem('authToken');
-          this.setAuthToken(null);
-          
-          // Only redirect if not already on login/register page
-          if (!window.location.pathname.includes('/login') && 
-              !window.location.pathname.includes('/register')) {
-            window.location.href = '/login';
+          // Token expired or invalid - try to refresh
+          const refreshToken = localStorage.getItem('refreshToken');
+          if (refreshToken && !error.config?.url?.includes('/auth/refresh')) {
+            try {
+              const refreshResponse = await this.post('/auth/refresh', {
+                refreshToken,
+              });
+              
+              const { token, refreshToken: newRefreshToken } = refreshResponse.data;
+              localStorage.setItem('authToken', token);
+              if (newRefreshToken) {
+                localStorage.setItem('refreshToken', newRefreshToken);
+              }
+              this.setAuthToken(token);
+              
+              // Retry the original request
+              if (error.config) {
+                error.config.headers['Authorization'] = `Bearer ${token}`;
+                return this.client.request(error.config);
+              }
+            } catch (refreshError) {
+              // Refresh failed, clear tokens and redirect
+              localStorage.removeItem('authToken');
+              localStorage.removeItem('refreshToken');
+              this.setAuthToken(null);
+              
+              // Only redirect if not already on login/register page
+              if (!window.location.pathname.includes('/login') && 
+                  !window.location.pathname.includes('/register')) {
+                window.location.href = '/login';
+              }
+            }
+          } else {
+            // No refresh token or refresh endpoint failed
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('refreshToken');
+            this.setAuthToken(null);
+            
+            // Only redirect if not already on login/register page
+            if (!window.location.pathname.includes('/login') && 
+                !window.location.pathname.includes('/register')) {
+              window.location.href = '/login';
+            }
           }
         }
 

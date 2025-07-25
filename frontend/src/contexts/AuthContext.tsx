@@ -14,6 +14,7 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
+  refreshToken: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,6 +26,35 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const refreshToken = async () => {
+    const storedRefreshToken = localStorage.getItem('refreshToken');
+    if (!storedRefreshToken) {
+      throw new Error('No refresh token available');
+    }
+
+    try {
+      const response = await apiClient.post('/auth/refresh', {
+        refreshToken: storedRefreshToken,
+      });
+
+      const { token, refreshToken: newRefreshToken, user: userData } = response.data;
+      
+      localStorage.setItem('authToken', token);
+      if (newRefreshToken) {
+        localStorage.setItem('refreshToken', newRefreshToken);
+      }
+      apiClient.setAuthToken(token);
+      setUser(userData);
+    } catch (error) {
+      // Refresh failed, clear all tokens
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('refreshToken');
+      apiClient.setAuthToken(null);
+      setUser(null);
+      throw error;
+    }
+  };
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -38,9 +68,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const response = await apiClient.get('/auth/me');
           setUser(response.data.user);
         } catch (error) {
-          // Token is invalid, remove it
-          localStorage.removeItem('authToken');
-          apiClient.setAuthToken(null);
+          // Token is invalid, try to refresh
+          try {
+            await refreshToken();
+          } catch (refreshError) {
+            // Refresh failed, clear auth state
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('refreshToken');
+            apiClient.setAuthToken(null);
+          }
         }
       }
       setLoading(false);
@@ -56,9 +92,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         password,
       });
 
-      const { token, user: userData } = response.data;
+      const { token, refreshToken: newRefreshToken, user: userData } = response.data;
       
       localStorage.setItem('authToken', token);
+      if (newRefreshToken) {
+        localStorage.setItem('refreshToken', newRefreshToken);
+      }
       apiClient.setAuthToken(token);
       setUser(userData);
     } catch (error) {
@@ -74,9 +113,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         password,
       });
 
-      const { token, user: userData } = response.data;
+      const { token, refreshToken: newRefreshToken, user: userData } = response.data;
       
       localStorage.setItem('authToken', token);
+      if (newRefreshToken) {
+        localStorage.setItem('refreshToken', newRefreshToken);
+      }
       apiClient.setAuthToken(token);
       setUser(userData);
     } catch (error) {
@@ -86,6 +128,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('authToken');
+    localStorage.removeItem('refreshToken');
     apiClient.setAuthToken(null);
     setUser(null);
   };
@@ -97,6 +140,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     register,
     logout,
+    refreshToken,
   };
 
   return (
