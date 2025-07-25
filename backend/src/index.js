@@ -1,20 +1,12 @@
 // Main entry point for the backend server
 require('dotenv').config();
 
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
+const app = require('./app');
 const db = require('./config/database');
 
-const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middleware
-app.use(helmet());
-app.use(cors());
-app.use(express.json());
-
-// Health check endpoint
+// Add database health check to the existing health endpoint
 app.get('/health', async (req, res) => {
   try {
     const dbStatus = await db.testConnection();
