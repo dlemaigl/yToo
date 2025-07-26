@@ -63,6 +63,15 @@ const db = {
     }
   },
 
+  // Get pool statistics
+  getPoolStats: () => {
+    return {
+      totalCount: pool.totalCount,
+      idleCount: pool.idleCount,
+      waitingCount: pool.waitingCount
+    };
+  },
+
   // Close all connections
   end: async () => {
     await pool.end();

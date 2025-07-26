@@ -10,7 +10,7 @@ class Vote {
   }
 
   // Cast or update a vote
-  static async castVote({ activityId, userId }) {
+  static async castVote(userId, activityId) {
     try {
       const query = `
         INSERT INTO votes (activity_id, user_id)
@@ -28,7 +28,7 @@ class Vote {
   }
 
   // Remove a vote
-  static async removeVote({ activityId, userId }) {
+  static async removeVote(userId, activityId) {
     const query = 'DELETE FROM votes WHERE activity_id = $1 AND user_id = $2';
     const result = await db.query(query, [activityId, userId]);
     return result.rowCount > 0;
@@ -87,6 +87,24 @@ class Vote {
     `;
     const result = await db.query(query, [groupId, userId]);
     return result.rows.map(row => row.activity_id);
+  }
+
+  // Get user's vote status for all activities in a group (privacy-safe)
+  static async getUserVoteStatusForGroup(userId, groupId) {
+    const query = `
+      SELECT 
+        a.id as activity_id,
+        CASE WHEN v.id IS NOT NULL THEN true ELSE false END as has_voted
+      FROM activities a
+      LEFT JOIN votes v ON a.id = v.activity_id AND v.user_id = $1
+      WHERE a.group_id = $2
+      ORDER BY a.created_at DESC
+    `;
+    const result = await db.query(query, [userId, groupId]);
+    return result.rows.map(row => ({
+      activityId: row.activity_id,
+      hasVoted: row.has_voted
+    }));
   }
 
   // Calculate majority status for all activities in a group

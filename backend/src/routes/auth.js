@@ -1,21 +1,9 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
-const Joi = require('joi');
 const User = require('../models/User');
+const { validateUserRegistration, validateUserLogin, validateRefreshToken } = require('../middleware/validation');
 
 const router = express.Router();
-
-// Validation schemas
-const registerSchema = Joi.object({
-  username: Joi.string().alphanum().min(3).max(30).required(),
-  email: Joi.string().email().required(),
-  password: Joi.string().min(6).required()
-});
-
-const loginSchema = Joi.object({
-  username: Joi.string().required(),
-  password: Joi.string().required()
-});
 
 // JWT token generation
 const generateTokens = (userId) => {
@@ -35,18 +23,9 @@ const generateTokens = (userId) => {
 };
 
 // Register endpoint
-router.post('/register', async (req, res) => {
+router.post('/register', validateUserRegistration, async (req, res) => {
   try {
-    // Validate input
-    const { error, value } = registerSchema.validate(req.body);
-    if (error) {
-      return res.status(400).json({
-        error: 'Validation failed',
-        details: error.details[0].message
-      });
-    }
-
-    const { username, email, password } = value;
+    const { username, email, password } = req.body;
 
     // Create user
     const user = await User.create({ username, email, password });
@@ -71,18 +50,9 @@ router.post('/register', async (req, res) => {
 });
 
 // Login endpoint
-router.post('/login', async (req, res) => {
+router.post('/login', validateUserLogin, async (req, res) => {
   try {
-    // Validate input
-    const { error, value } = loginSchema.validate(req.body);
-    if (error) {
-      return res.status(400).json({
-        error: 'Validation failed',
-        details: error.details[0].message
-      });
-    }
-
-    const { username, password } = value;
+    const { username, password } = req.body;
 
     // Find user by username
     const user = await User.findByUsername(username);
@@ -112,13 +82,9 @@ router.post('/login', async (req, res) => {
 });
 
 // Refresh token endpoint
-router.post('/refresh', async (req, res) => {
+router.post('/refresh', validateRefreshToken, async (req, res) => {
   try {
     const { refreshToken } = req.body;
-    
-    if (!refreshToken) {
-      return res.status(400).json({ error: 'Refresh token required' });
-    }
 
     // Verify refresh token
     const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);

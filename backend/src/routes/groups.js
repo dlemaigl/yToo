@@ -3,38 +3,31 @@ const Group = require('../models/Group');
 const User = require('../models/User');
 const Activity = require('../models/Activity');
 const { authenticateToken } = require('../middleware/auth');
+const { validateGroupCreation, validateActivityCreation, validateUUID } = require('../middleware/validation');
+const { applyRateLimit } = require('../middleware/rateLimiting');
 
 const router = express.Router();
 
 // Create a new group
-router.post('/', authenticateToken, async (req, res) => {
-  try {
-    const { name } = req.body;
+router.post('/', 
+  authenticateToken, 
+  applyRateLimit('groupCreation'),
+  validateGroupCreation, 
+  async (req, res) => {
+    try {
+      const { name } = req.body;
 
-    // Validate input
-    if (!name || typeof name !== 'string' || name.trim().length === 0) {
-      return res.status(400).json({
-        error: 'Group name is required and must be a non-empty string'
+      // Create group with the authenticated user as creator
+      const group = await Group.create({
+        name: name.trim(),
+        creatorId: req.user.id
       });
-    }
 
-    if (name.trim().length > 100) {
-      return res.status(400).json({
-        error: 'Group name must be 100 characters or less'
+      res.status(201).json({
+        message: 'Group created successfully',
+        group: group.toJSON()
       });
-    }
-
-    // Create group with the authenticated user as creator
-    const group = await Group.create({
-      name: name.trim(),
-      creatorId: req.user.id
-    });
-
-    res.status(201).json({
-      message: 'Group created successfully',
-      group: group.toJSON()
-    });
-  } catch (error) {
+    } catch (error) {
     console.error('Error creating group:', error);
     res.status(500).json({
       error: 'Failed to create group'
@@ -70,19 +63,14 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // Get group details
-router.get('/:id', authenticateToken, async (req, res) => {
-  try {
-    const { id } = req.params;
+router.get('/:id', 
+  authenticateToken, 
+  validateUUID('id'),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
 
-    // Validate UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(id)) {
-      return res.status(400).json({
-        error: 'Invalid group ID format'
-      });
-    }
-
-    const group = await Group.findById(id);
+      const group = await Group.findById(id);
     
     if (!group) {
       return res.status(404).json({
@@ -116,19 +104,15 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 // Join group via invite token
-router.post('/join/:inviteToken', authenticateToken, async (req, res) => {
-  try {
-    const { inviteToken } = req.params;
+router.post('/join/:inviteToken', 
+  authenticateToken, 
+  applyRateLimit('groupJoining'),
+  validateUUID('inviteToken'),
+  async (req, res) => {
+    try {
+      const { inviteToken } = req.params;
 
-    // Validate UUID format for invite token
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(inviteToken)) {
-      return res.status(400).json({
-        error: 'Invalid invite token format'
-      });
-    }
-
-    // Find group by invite token
+      // Find group by invite token
     const group = await Group.findByInviteToken(inviteToken);
     
     if (!group) {
@@ -169,27 +153,22 @@ router.post('/join/:inviteToken', authenticateToken, async (req, res) => {
 });
 
 // Get group members (separate endpoint for member management)
-router.get('/:id/members', authenticateToken, async (req, res) => {
-  try {
-    const { id } = req.params;
+router.get('/:id/members', 
+  authenticateToken, 
+  validateUUID('id'),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
 
-    // Validate UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(id)) {
-      return res.status(400).json({
-        error: 'Invalid group ID format'
-      });
-    }
+      const group = await Group.findById(id);
+      
+      if (!group) {
+        return res.status(404).json({
+          error: 'Group not found'
+        });
+      }
 
-    const group = await Group.findById(id);
-    
-    if (!group) {
-      return res.status(404).json({
-        error: 'Group not found'
-      });
-    }
-
-    // Check if user is a member of the group
+      // Check if user is a member of the group
     const isMember = await group.isMember(req.user.id);
     if (!isMember) {
       return res.status(403).json({
@@ -211,19 +190,22 @@ router.get('/:id/members', authenticateToken, async (req, res) => {
 });
 
 // Remove member from group (only group creator can do this)
-router.delete('/:id/members/:userId', authenticateToken, async (req, res) => {
-  try {
-    const { id, userId } = req.params;
+router.delete('/:id/members/:userId', 
+  authenticateToken, 
+  validateUUID('id'),
+  async (req, res) => {
+    try {
+      const { id, userId } = req.params;
 
-    // Validate UUID formats
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(id) || !uuidRegex.test(userId)) {
-      return res.status(400).json({
-        error: 'Invalid ID format'
-      });
-    }
+      // Validate userId format
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(userId)) {
+        return res.status(400).json({
+          error: 'Invalid user ID format'
+        });
+      }
 
-    const group = await Group.findById(id);
+      const group = await Group.findById(id);
     
     if (!group) {
       return res.status(404).json({
@@ -274,45 +256,17 @@ router.delete('/:id/members/:userId', authenticateToken, async (req, res) => {
 });
 
 // Create activity for a group (anonymous)
-router.post('/:id/activities', authenticateToken, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { title, description } = req.body;
+router.post('/:id/activities', 
+  authenticateToken, 
+  applyRateLimit('activityCreation'),
+  validateUUID('id'),
+  validateActivityCreation,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { title, description } = req.body;
 
-    // Validate UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(id)) {
-      return res.status(400).json({
-        error: 'Invalid group ID format'
-      });
-    }
-
-    // Validate input
-    if (!title || typeof title !== 'string' || title.trim().length === 0) {
-      return res.status(400).json({
-        error: 'Activity title is required and must be a non-empty string'
-      });
-    }
-
-    if (title.trim().length > 200) {
-      return res.status(400).json({
-        error: 'Activity title must be 200 characters or less'
-      });
-    }
-
-    if (description && typeof description !== 'string') {
-      return res.status(400).json({
-        error: 'Activity description must be a string'
-      });
-    }
-
-    if (description && description.trim().length > 1000) {
-      return res.status(400).json({
-        error: 'Activity description must be 1000 characters or less'
-      });
-    }
-
-    // Check if group exists
+      // Check if group exists
     const group = await Group.findById(id);
     if (!group) {
       return res.status(404).json({
@@ -348,19 +302,14 @@ router.post('/:id/activities', authenticateToken, async (req, res) => {
 });
 
 // Get activities for a group
-router.get('/:id/activities', authenticateToken, async (req, res) => {
-  try {
-    const { id } = req.params;
+router.get('/:id/activities', 
+  authenticateToken, 
+  validateUUID('id'),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
 
-    // Validate UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(id)) {
-      return res.status(400).json({
-        error: 'Invalid group ID format'
-      });
-    }
-
-    // Check if group exists
+      // Check if group exists
     const group = await Group.findById(id);
     if (!group) {
       return res.status(404).json({

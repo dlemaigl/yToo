@@ -15,7 +15,16 @@
     "install:frontend": "cd frontend && npm install",
     "install:all": "npm run install:backend && npm run install:frontend",
     "test:backend": "cd backend && npm test",
-    "test:frontend": "cd frontend && npm test"
+    "test:frontend": "cd frontend && npm test",
+    "deploy:prod": "bash scripts/deploy.sh deploy",
+    "deploy:prod:win": "powershell -ExecutionPolicy Bypass -File scripts/deploy.ps1 deploy",
+    "prod:start": "docker-compose -f docker-compose.prod.yml --env-file .env.production.local up -d",
+    "prod:stop": "docker-compose -f docker-compose.prod.yml down",
+    "prod:logs": "docker-compose -f docker-compose.prod.yml logs -f",
+    "prod:status": "docker-compose -f docker-compose.prod.yml ps",
+    "prod:backup": "node scripts/migrate-production.js backup",
+    "prod:migrate": "node scripts/migrate-production.js migrate",
+    "prod:health": "curl -f http://localhost/health || echo 'Health check failed'"
   },
   "keywords": ["voting", "groups", "activities", "react", "node"],
   "author": "",
