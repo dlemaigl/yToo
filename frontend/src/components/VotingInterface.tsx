@@ -55,7 +55,7 @@ const VotingInterface: React.FC<VotingInterfaceProps> = ({
       <div className="voting-controls">
         <Button
           variant={userVote ? 'primary' : 'outline'}
-          size="small"
+          size="sm"
           onClick={handleVote}
           disabled={isVoting || disabled}
           className={`vote-button ${userVote ? 'voted' : 'not-voted'}`}

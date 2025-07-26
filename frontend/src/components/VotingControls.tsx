@@ -41,7 +41,7 @@ const VotingControls: React.FC<VotingControlsProps> = ({
     <div className="voting-controls">
       <Button
         variant={hasUserVoted ? "primary" : "outline"}
-        size="small"
+        size="sm"
         onClick={handleVote}
         disabled={disabled || isLoading}
         className={`vote-button ${hasUserVoted ? 'voted' : ''} ${isChosen ? 'chosen-activity' : ''}`}

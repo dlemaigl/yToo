@@ -6,11 +6,13 @@ import GroupMembers from '../components/GroupMembers';
 import InviteLink from '../components/InviteLink';
 import ActivityProposalForm from '../components/ActivityProposalForm';
 import ActivityList from '../components/ActivityList';
-import ActivityNotification from '../components/ActivityNotification';
+import NotificationSystem from '../components/NotificationSystem';
+import ConnectionStatus from '../components/ConnectionStatus';
+import OfflineModal from '../components/OfflineModal';
 import { apiClient } from '../services/apiClient';
 import { useAuth } from '../contexts/AuthContext';
 import { useSocket } from '../contexts/SocketContext';
-import { useRealTimeActivities } from '../hooks/useRealTimeActivities';
+import { useRealTimeUpdates } from '../hooks/useRealTimeUpdates';
 import { useVoting } from '../hooks/useVoting';
 
 interface Group {
@@ -38,22 +40,41 @@ const GroupDetailPage: React.FC = () => {
   const { groupId } = useParams<{ groupId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isConnected } = useSocket();
+  const { reconnect } = useSocket();
   const [group, setGroup] = useState<Group | null>(null);
   const [initialActivities, setInitialActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showInviteLink, setShowInviteLink] = useState(false);
   const [showProposalForm, setShowProposalForm] = useState(false);
+  const [showOfflineModal, setShowOfflineModal] = useState(false);
+  const [offlineModalDismissed, setOfflineModalDismissed] = useState(false);
 
-  // Use real-time activities hook
+  // Use enhanced real-time updates hook
   const { 
-    activities, 
-    newActivityNotification, 
-    dismissNotification 
-  } = useRealTimeActivities({
+    activities,
+    members,
+    notifications,
+    dismissNotification,
+    clearAllNotifications,
+    isConnected,
+    isReconnecting,
+    connectionError,
+    lastActivityUpdate,
+    hasRecentActivity
+  } = useRealTimeUpdates({
     groupId: groupId || '',
-    initialActivities
+    initialActivities,
+    initialMembers: group?.members || [],
+    onActivityUpdate: (updatedActivities) => {
+      // Optional: Handle activity updates if needed
+    },
+    onMemberUpdate: (updatedMembers) => {
+      // Update group members when new members join
+      if (group) {
+        setGroup(prev => prev ? { ...prev, members: updatedMembers } : null);
+      }
+    }
   });
 
   // Use voting hook
@@ -102,20 +123,42 @@ const GroupDetailPage: React.FC = () => {
     }
   };
 
+  // Handle extended offline states
+  useEffect(() => {
+    let offlineTimer: NodeJS.Timeout;
+    
+    if (!isConnected && !isReconnecting && !offlineModalDismissed) {
+      // Show offline modal after 10 seconds of being disconnected
+      offlineTimer = setTimeout(() => {
+        setShowOfflineModal(true);
+      }, 10000);
+    } else {
+      setShowOfflineModal(false);
+    }
+    
+    return () => {
+      if (offlineTimer) {
+        clearTimeout(offlineTimer);
+      }
+    };
+  }, [isConnected, isReconnecting, offlineModalDismissed]);
+
+  // Reset offline modal state when connection is restored
+  useEffect(() => {
+    if (isConnected) {
+      setOfflineModalDismissed(false);
+      setShowOfflineModal(false);
+    }
+  }, [isConnected]);
+
   const handleActivityCreated = (newActivity: Activity) => {
     setShowProposalForm(false);
     // The real-time hook will handle adding the activity to the list
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  const handleOfflineModalDismiss = () => {
+    setShowOfflineModal(false);
+    setOfflineModalDismissed(true);
   };
 
   if (loading) {
@@ -205,10 +248,14 @@ const GroupDetailPage: React.FC = () => {
                 <div className="activities-section">
                   <div className="activities-header">
                     <h3>Activities</h3>
-                    <div className="connection-status">
-                      <div className={`connection-indicator ${isConnected ? 'connected' : 'disconnected'}`}></div>
-                      {isConnected ? 'Live updates' : 'Offline'}
-                    </div>
+                    <ConnectionStatus
+                      isConnected={isConnected}
+                      isReconnecting={isReconnecting}
+                      connectionError={connectionError}
+                      onReconnect={reconnect}
+                      hasRecentActivity={hasRecentActivity}
+                      lastActivityUpdate={lastActivityUpdate}
+                    />
                   </div>
                   
                   <ActivityList 
@@ -225,20 +272,19 @@ const GroupDetailPage: React.FC = () => {
 
           <div className="group-detail-sidebar">
             <GroupMembers 
-              members={group.members}
+              members={members.length > 0 ? members : group.members}
               creatorId={group.creatorId}
               currentUserId={user?.id || ''}
             />
           </div>
         </div>
 
-        {/* Real-time notification for new activities */}
-        {newActivityNotification && (
-          <ActivityNotification
-            activity={newActivityNotification}
-            onDismiss={dismissNotification}
-          />
-        )}
+        {/* Enhanced notification system */}
+        <NotificationSystem
+          notifications={notifications}
+          onDismiss={dismissNotification}
+          onClearAll={clearAllNotifications}
+        />
 
         {/* Voting error notification */}
         {votingError && (
@@ -254,6 +300,14 @@ const GroupDetailPage: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Offline state modal */}
+        <OfflineModal
+          isVisible={showOfflineModal}
+          onReconnect={reconnect}
+          onDismiss={handleOfflineModalDismiss}
+          isReconnecting={isReconnecting}
+        />
       </div>
     </div>
   );
