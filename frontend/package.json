@@ -17,6 +17,12 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test --watchAll=false",
+    "test:watch": "react-scripts test",
+    "test:all": "npx ts-node src/__tests__/test-runner.ts all",
+    "test:integration": "npx ts-node src/__tests__/test-runner.ts integration",
+    "test:privacy": "npx ts-node src/__tests__/test-runner.ts privacy",
+    "test:realtime": "npx ts-node src/__tests__/test-runner.ts realtime",
+    "test:coverage": "npx ts-node src/__tests__/test-runner.ts coverage",
     "eject": "react-scripts eject"
   },
   "devDependencies": {

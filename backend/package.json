@@ -8,6 +8,12 @@
     "start": "node src/index.js",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:all": "node src/__tests__/test-runner.js all",
+    "test:integration": "node src/__tests__/test-runner.js integration",
+    "test:privacy": "node src/__tests__/test-runner.js privacy",
+    "test:performance": "node src/__tests__/test-runner.js performance",
+    "test:realtime": "node src/__tests__/test-runner.js realtime",
+    "test:coverage": "node src/__tests__/test-runner.js coverage",
     "migrate": "node src/migrations/migrate.js up",
     "migrate:rollback": "node src/migrations/migrate.js rollback"
   },
