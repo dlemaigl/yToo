@@ -11,6 +11,7 @@ import { apiClient } from '../services/apiClient';
 import { useAuth } from '../contexts/AuthContext';
 import { useSocket } from '../contexts/SocketContext';
 import { useRealTimeActivities } from '../hooks/useRealTimeActivities';
+import { useVoting } from '../hooks/useVoting';
 
 interface Group {
   id: string;
@@ -53,6 +54,18 @@ const GroupDetailPage: React.FC = () => {
   } = useRealTimeActivities({
     groupId: groupId || '',
     initialActivities
+  });
+
+  // Use voting hook
+  const {
+    hasUserVoted,
+    castVote,
+    removeVote,
+    loading: votingLoading,
+    error: votingError
+  } = useVoting({
+    groupId: groupId || '',
+    activities
   });
 
   useEffect(() => {
@@ -198,7 +211,13 @@ const GroupDetailPage: React.FC = () => {
                     </div>
                   </div>
                   
-                  <ActivityList activities={activities} />
+                  <ActivityList 
+                    activities={activities}
+                    onVote={castVote}
+                    onRemoveVote={removeVote}
+                    hasUserVoted={hasUserVoted}
+                    votingDisabled={votingLoading}
+                  />
                 </div>
               </Card>
             )}
@@ -219,6 +238,21 @@ const GroupDetailPage: React.FC = () => {
             activity={newActivityNotification}
             onDismiss={dismissNotification}
           />
+        )}
+
+        {/* Voting error notification */}
+        {votingError && (
+          <div className="error-notification">
+            <div className="error-content">
+              <span className="error-message">{votingError}</span>
+              <button 
+                className="error-dismiss"
+                onClick={() => {/* Error will clear on next successful action */}}
+              >
+                ×
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>

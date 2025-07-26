@@ -1,4 +1,5 @@
 import React from 'react';
+import VotingControls from './VotingControls';
 
 interface Activity {
   id: string;
@@ -11,11 +12,19 @@ interface Activity {
 interface ActivityListProps {
   activities: Activity[];
   onActivityClick?: (activity: Activity) => void;
+  onVote?: (activityId: string) => Promise<void>;
+  onRemoveVote?: (activityId: string) => Promise<void>;
+  hasUserVoted?: (activityId: string) => boolean;
+  votingDisabled?: boolean;
 }
 
 const ActivityList: React.FC<ActivityListProps> = ({ 
   activities, 
-  onActivityClick 
+  onActivityClick,
+  onVote,
+  onRemoveVote,
+  hasUserVoted,
+  votingDisabled = false
 }) => {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -77,6 +86,19 @@ const ActivityList: React.FC<ActivityListProps> = ({
               </span>
             </div>
           </div>
+          
+          {onVote && onRemoveVote && hasUserVoted && (
+            <div className="activity-actions">
+              <VotingControls
+                activityId={activity.id}
+                hasUserVoted={hasUserVoted(activity.id)}
+                isChosen={activity.isChosen}
+                onVote={onVote}
+                onRemoveVote={onRemoveVote}
+                disabled={votingDisabled}
+              />
+            </div>
+          )}
         </div>
       ))}
     </div>

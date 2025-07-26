@@ -114,4 +114,147 @@ describe('ActivityList', () => {
     expect(screen.getByText('Simple activity')).toBeInTheDocument();
     expect(screen.queryByText('undefined')).not.toBeInTheDocument();
   });
-});
+
+  // Voting functionality tests
+  describe('Voting functionality', () => {
+    const mockOnVote = jest.fn();
+    const mockOnRemoveVote = jest.fn();
+    const mockHasUserVoted = jest.fn();
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+      mockHasUserVoted.mockImplementation((activityId) => activityId === '2'); // User voted for activity 2
+    });
+
+    it('renders voting controls when voting props are provided', () => {
+      render(
+        <ActivityList 
+          activities={mockActivities}
+          onVote={mockOnVote}
+          onRemoveVote={mockOnRemoveVote}
+          hasUserVoted={mockHasUserVoted}
+        />
+      );
+      
+      // Should have voting controls for each activity
+      expect(screen.getAllByRole('button', { name: /\+ vote/i })).toHaveLength(2); // Activities 1 and 3
+      expect(screen.getByRole('button', { name: /✓ voted/i })).toBeInTheDocument(); // Activity 2
+    });
+
+    it('does not render voting controls when voting props are not provided', () => {
+      render(<ActivityList activities={mockActivities} />);
+      
+      expect(screen.queryByRole('button', { name: /vote/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /voted/i })).not.toBeInTheDocument();
+    });
+
+    it('shows correct voting state for each activity', () => {
+      render(
+        <ActivityList 
+          activities={mockActivities}
+          onVote={mockOnVote}
+          onRemoveVote={mockOnRemoveVote}
+          hasUserVoted={mockHasUserVoted}
+        />
+      );
+      
+      // Activity 1 - not voted
+      const activity1 = screen.getByText('Go to the movies').closest('.activity-item');
+      expect(activity1?.querySelector('button')).toHaveTextContent('Vote');
+      
+      // Activity 2 - voted
+      const activity2 = screen.getByText('Have a picnic').closest('.activity-item');
+      expect(activity2?.querySelector('button')).toHaveTextContent('Voted');
+      expect(activity2?.querySelector('.user-vote-indicator')).toHaveTextContent('Your vote');
+      
+      // Activity 3 - not voted
+      const activity3 = screen.getByText('Play board games').closest('.activity-item');
+      expect(activity3?.querySelector('button')).toHaveTextContent('Vote');
+    });
+
+    it('calls onVote when vote button is clicked', () => {
+      render(
+        <ActivityList 
+          activities={mockActivities}
+          onVote={mockOnVote}
+          onRemoveVote={mockOnRemoveVote}
+          hasUserVoted={mockHasUserVoted}
+        />
+      );
+      
+      const voteButtons = screen.getAllByRole('button', { name: /\+ vote/i });
+      fireEvent.click(voteButtons[0]);
+      
+      expect(mockOnVote).toHaveBeenCalledWith('1');
+    });
+
+    it('calls onRemoveVote when voted button is clicked', () => {
+      render(
+        <ActivityList 
+          activities={mockActivities}
+          onVote={mockOnVote}
+          onRemoveVote={mockOnRemoveVote}
+          hasUserVoted={mockHasUserVoted}
+        />
+      );
+      
+      const votedButton = screen.getByRole('button', { name: /✓ voted/i });
+      fireEvent.click(votedButton);
+      
+      expect(mockOnRemoveVote).toHaveBeenCalledWith('2');
+    });
+
+    it('disables voting controls when votingDisabled is true', () => {
+      render(
+        <ActivityList 
+          activities={mockActivities}
+          onVote={mockOnVote}
+          onRemoveVote={mockOnRemoveVote}
+          hasUserVoted={mockHasUserVoted}
+          votingDisabled={true}
+        />
+      );
+      
+      const allButtons = screen.getAllByRole('button');
+      allButtons.forEach(button => {
+        expect(button).toBeDisabled();
+      });
+    });
+
+    it('does not show vote counts or statistics', () => {
+      render(
+        <ActivityList 
+          activities={mockActivities}
+          onVote={mockOnVote}
+          onRemoveVote={mockOnRemoveVote}
+          hasUserVoted={mockHasUserVoted}
+        />
+      );
+      
+      // Ensure no vote counts, percentages, or other user voting info is displayed
+      expect(screen.queryByText(/\d+%/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/\d+ votes?/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/\d+ of \d+/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/other users/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/total votes/i)).not.toBeInTheDocument();
+    });
+
+    it('applies chosen activity styling to voting controls', () => {
+      render(
+        <ActivityList 
+          activities={mockActivities}
+          onVote={mockOnVote}
+          onRemoveVote={mockOnRemoveVote}
+          hasUserVoted={mockHasUserVoted}
+        />
+      );
+      
+      // Activity 2 is chosen and user has voted
+      const chosenActivityButton = screen.getByText('Have a picnic')
+        .closest('.activity-item')
+        ?.querySelector('button');
+      
+      expect(chosenActivityButton).toHaveClass('chosen-activity');
+    });
+  });})
+;
