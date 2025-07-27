@@ -130,7 +130,7 @@ describe('LoginPage', () => {
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(apiClient.post).toHaveBeenCalledWith('/auth/login', {
+      expect(apiClient.post).toHaveBeenCalledWith('auth/login', {
         username: 'testuser',
         password: 'password123',
       });

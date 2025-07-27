@@ -6,21 +6,38 @@ let redisClient = null;
 if (process.env.REDIS_URL) {
   try {
     redisClient = redis.createClient({
-      url: process.env.REDIS_URL
+      url: process.env.REDIS_URL,
+      socket: {
+        connectTimeout: 5000,
+        lazyConnect: true
+      }
     });
-    redisClient.connect();
+    
+    redisClient.on('error', (err) => {
+      console.warn('Redis connection error, falling back to in-memory rate limiting:', err.message);
+      redisClient = null;
+    });
+    
+    redisClient.connect().catch(err => {
+      console.warn('Redis connection failed, using in-memory rate limiting:', err.message);
+      redisClient = null;
+    });
   } catch (error) {
     console.warn('Redis connection failed, using in-memory rate limiting:', error.message);
+    redisClient = null;
   }
 }
 
 // Custom rate limit store using Redis (if available)
 const createRedisStore = () => {
-  if (!redisClient) return undefined;
+  if (!redisClient || !redisClient.isReady) return undefined;
   
   return {
     incr: async (key) => {
       try {
+        if (!redisClient.isReady) {
+          return { totalHits: 1, resetTime: new Date(Date.now() + 900000) };
+        }
         const current = await redisClient.incr(key);
         if (current === 1) {
           await redisClient.expire(key, 900); // 15 minutes
@@ -33,14 +50,18 @@ const createRedisStore = () => {
     },
     decrement: async (key) => {
       try {
-        await redisClient.decr(key);
+        if (redisClient && redisClient.isReady) {
+          await redisClient.decr(key);
+        }
       } catch (error) {
         console.error('Redis decrement error:', error);
       }
     },
     resetKey: async (key) => {
       try {
-        await redisClient.del(key);
+        if (redisClient && redisClient.isReady) {
+          await redisClient.del(key);
+        }
       } catch (error) {
         console.error('Redis reset error:', error);
       }

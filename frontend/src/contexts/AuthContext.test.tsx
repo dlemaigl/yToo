@@ -70,7 +70,7 @@ describe('AuthContext', () => {
     });
 
     expect(mockApiClient.setAuthToken).toHaveBeenCalledWith('existing-token');
-    expect(mockApiClient.get).toHaveBeenCalledWith('/auth/me');
+    expect(mockApiClient.get).toHaveBeenCalledWith('auth/me');
     expect(screen.getByTestId('authenticated')).toHaveTextContent('true');
     expect(screen.getByTestId('user')).toHaveTextContent('testuser');
   });
@@ -79,7 +79,7 @@ describe('AuthContext', () => {
     localStorage.setItem('authToken', 'invalid-token');
     localStorage.setItem('refreshToken', 'refresh-token');
     
-    // Mock /auth/me to fail
+    // Mock auth/me to fail
     mockApiClient.get.mockRejectedValue(new Error('Unauthorized'));
     
     // Mock refresh to succeed
@@ -97,7 +97,7 @@ describe('AuthContext', () => {
       expect(screen.getByTestId('loading')).toHaveTextContent('false');
     });
 
-    expect(mockApiClient.post).toHaveBeenCalledWith('/auth/refresh', {
+    expect(mockApiClient.post).toHaveBeenCalledWith('auth/refresh', {
       refreshToken: 'refresh-token',
     });
     expect(screen.getByTestId('authenticated')).toHaveTextContent('true');
@@ -108,7 +108,7 @@ describe('AuthContext', () => {
     localStorage.setItem('authToken', 'invalid-token');
     localStorage.setItem('refreshToken', 'invalid-refresh-token');
     
-    // Mock both /auth/me and refresh to fail
+    // Mock both auth/me and refresh to fail
     mockApiClient.get.mockRejectedValue(new Error('Unauthorized'));
     mockApiClient.post.mockRejectedValue(new Error('Refresh failed'));
 
@@ -144,7 +144,7 @@ describe('AuthContext', () => {
     });
 
     await waitFor(() => {
-      expect(mockApiClient.post).toHaveBeenCalledWith('/auth/login', {
+      expect(mockApiClient.post).toHaveBeenCalledWith('auth/login', {
         username: 'testuser',
         password: 'password',
       });
@@ -177,7 +177,7 @@ describe('AuthContext', () => {
     });
 
     await waitFor(() => {
-      expect(mockApiClient.post).toHaveBeenCalledWith('/auth/register', {
+      expect(mockApiClient.post).toHaveBeenCalledWith('auth/register', {
         username: 'testuser',
         email: 'test@example.com',
         password: 'password',
@@ -239,7 +239,7 @@ describe('AuthContext', () => {
     });
 
     await waitFor(() => {
-      expect(mockApiClient.post).toHaveBeenCalledWith('/auth/refresh', {
+      expect(mockApiClient.post).toHaveBeenCalledWith('auth/refresh', {
         refreshToken: 'refresh-token',
       });
     });

@@ -55,22 +55,22 @@ class ApiClient {
         if (error.response?.status === 401) {
           // Token expired or invalid - try to refresh
           const refreshToken = localStorage.getItem('refreshToken');
-          if (refreshToken && !error.config?.url?.includes('/auth/refresh')) {
+          if (refreshToken && !error.config?.url?.includes('auth/refresh')) {
             try {
-              const refreshResponse = await this.post('/auth/refresh', {
+              const refreshResponse = await this.post('auth/refresh', {
                 refreshToken,
               });
               
-              const { token, refreshToken: newRefreshToken } = refreshResponse.data;
-              localStorage.setItem('authToken', token);
+              const { accessToken, refreshToken: newRefreshToken } = refreshResponse.data;
+              localStorage.setItem('authToken', accessToken);
               if (newRefreshToken) {
                 localStorage.setItem('refreshToken', newRefreshToken);
               }
-              this.setAuthToken(token);
+              this.setAuthToken(accessToken);
               
               // Retry the original request
               if (error.config) {
-                error.config.headers['Authorization'] = `Bearer ${token}`;
+                error.config.headers['Authorization'] = `Bearer ${accessToken}`;
                 return this.client.request(error.config);
               }
             } catch (refreshError) {

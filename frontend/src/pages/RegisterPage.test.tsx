@@ -201,7 +201,7 @@ describe('RegisterPage', () => {
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(apiClient.post).toHaveBeenCalledWith('/auth/register', {
+      expect(apiClient.post).toHaveBeenCalledWith('auth/register', {
         username: 'testuser',
         email: 'test@example.com',
         password: 'password123',
