@@ -278,9 +278,10 @@ class MajorityCalculationService {
    * Process vote change and update related activity statuses
    * This is the main function to call when a vote is cast or changed
    * @param {string} activityId - The activity that received the vote change
+   * @param {Object} websocketService - WebSocket service for real-time notifications
    * @returns {Promise<Object>} Processing result with all status changes
    */
-  static async processVoteChange(activityId) {
+  static async processVoteChange(activityId, websocketService = null) {
     try {
       // Get the group ID for this activity
       const activity = await Activity.findById(activityId);
@@ -298,6 +299,38 @@ class MajorityCalculationService {
       
       // Find activities that changed status
       const statusChanges = updateResults.filter(result => result.statusChanged);
+      
+      // Send WebSocket notifications for status changes
+      console.log('Status changes detected:', statusChanges.length);
+      console.log('WebSocket service available:', !!websocketService);
+      
+      if (websocketService && statusChanges.length > 0) {
+        console.log('Sending WebSocket notifications for status changes');
+        for (const change of statusChanges) {
+          console.log('Processing status change:', change);
+          
+          // Notify about vote status change (without exposing vote details)
+          await websocketService.notifyVoteStatusChanged(groupId, change.activityId);
+          
+          // Get the full activity object for chosen/unchosen notifications
+          const changedActivity = await Activity.findById(change.activityId);
+          if (changedActivity) {
+            if (change.newStatus) {
+              // Activity was chosen
+              console.log('Notifying activity chosen:', change.activityId);
+              await websocketService.notifyActivityChosen(groupId, changedActivity);
+            } else {
+              // Activity was unchosen
+              console.log('Notifying activity unchosen:', change.activityId);
+              await websocketService.notifyActivityUnchosen(groupId, changedActivity);
+            }
+          }
+        }
+      } else if (websocketService) {
+        // Always send vote_updated event even if no status changes
+        console.log('Sending vote_updated notification');
+        await websocketService.notifyVoteStatusChanged(groupId, activityId);
+      }
       
       return {
         groupId,

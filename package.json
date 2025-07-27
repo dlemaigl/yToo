@@ -26,10 +26,20 @@
     "prod:migrate": "node scripts/migrate-production.js migrate",
     "prod:health": "curl -f http://localhost/health || echo 'Health check failed'"
   },
-  "keywords": ["voting", "groups", "activities", "react", "node"],
+  "keywords": [
+    "voting",
+    "groups",
+    "activities",
+    "react",
+    "node"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {
     "concurrently": "^8.2.0"
+  },
+  "dependencies": {
+    "axios": "^1.11.0",
+    "socket.io-client": "^4.8.1"
   }
 }

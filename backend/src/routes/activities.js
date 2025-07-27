@@ -44,10 +44,12 @@ router.post('/:id/vote',
       // Cast or update vote (anonymous)
       const vote = await Vote.castVote(userId, activityId);
 
-      // Trigger majority calculation (this will be handled by the background service)
-      // For now, we'll trigger it manually
+      // Trigger majority calculation with WebSocket notifications
       const majorityService = require('../services/majorityCalculation');
-      await majorityService.processVoteChange(activityId);
+      const websocketService = req.app.get('websocketService');
+      console.log('Processing vote change for activity:', activityId);
+      console.log('WebSocket service available:', !!websocketService);
+      await majorityService.processVoteChange(activityId, websocketService);
 
       res.status(201).json({
         message: 'Vote cast successfully',
@@ -111,9 +113,10 @@ router.delete('/:id/vote',
         });
       }
 
-      // Trigger majority calculation
+      // Trigger majority calculation with WebSocket notifications
       const majorityService = require('../services/majorityCalculation');
-      await majorityService.processVoteChange(activityId);
+      const websocketService = req.app.get('websocketService');
+      await majorityService.processVoteChange(activityId, websocketService);
 
       res.json({
         message: 'Vote removed successfully'

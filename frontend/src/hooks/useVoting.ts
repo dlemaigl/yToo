@@ -21,36 +21,7 @@ export const useVoting = ({ groupId, activities }: UseVotingProps) => {
     error: null
   });
 
-  // Load initial voting status
-  useEffect(() => {
-    if (groupId && activities.length > 0) {
-      loadVotingStatus();
-    }
-  }, [groupId, activities.length]);
-
-  // Listen for real-time voting updates
-  useEffect(() => {
-    if (!socket || !groupId) return;
-
-    const handleActivityChosen = (data: { activityId: string; isChosen: boolean }) => {
-      // Activity status changed - no need to update user votes, just activity status
-      // The parent component will handle activity status updates
-    };
-
-    const handleActivityUnchosen = (data: { activityId: string; isChosen: boolean }) => {
-      // Activity status changed - handled by parent component
-    };
-
-    socket.on('group:activity_chosen', handleActivityChosen);
-    socket.on('group:activity_unchosen', handleActivityUnchosen);
-
-    return () => {
-      socket.off('group:activity_chosen', handleActivityChosen);
-      socket.off('group:activity_unchosen', handleActivityUnchosen);
-    };
-  }, [socket, groupId]);
-
-  const loadVotingStatus = async () => {
+  const loadVotingStatus = useCallback(async () => {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }));
       
@@ -79,7 +50,45 @@ export const useVoting = ({ groupId, activities }: UseVotingProps) => {
         loading: false
       }));
     }
-  };
+  }, [groupId, activities]);
+
+  // Load initial voting status
+  useEffect(() => {
+    if (groupId && activities.length > 0) {
+      loadVotingStatus();
+    }
+  }, [groupId, activities.length, loadVotingStatus]);
+
+  // Listen for real-time voting updates
+  useEffect(() => {
+    if (!socket || !groupId) return;
+
+    const handleActivityChosen = (data: { activityId: string; isChosen: boolean }) => {
+      // Activity status changed - no need to update user votes, just activity status
+      // The parent component will handle activity status updates
+    };
+
+    const handleActivityUnchosen = (data: { activityId: string; isChosen: boolean }) => {
+      // Activity status changed - handled by parent component
+    };
+
+    const handleVoteUpdated = (data: { activityId: string; groupId: string; timestamp: string }) => {
+      // Vote status changed - refresh voting status to get latest state
+      if (data.groupId === groupId) {
+        loadVotingStatus();
+      }
+    };
+
+    socket.on('group:activity_chosen', handleActivityChosen);
+    socket.on('group:activity_unchosen', handleActivityUnchosen);
+    socket.on('group:vote_updated', handleVoteUpdated);
+
+    return () => {
+      socket.off('group:activity_chosen', handleActivityChosen);
+      socket.off('group:activity_unchosen', handleActivityUnchosen);
+      socket.off('group:vote_updated', handleVoteUpdated);
+    };
+  }, [socket, groupId, loadVotingStatus]);
 
   const castVote = useCallback(async (activityId: string): Promise<void> => {
     try {
@@ -127,7 +136,7 @@ export const useVoting = ({ groupId, activities }: UseVotingProps) => {
 
   const refreshVotingStatus = useCallback(() => {
     loadVotingStatus();
-  }, [groupId, activities]);
+  }, [loadVotingStatus]);
 
   return {
     hasUserVoted,
