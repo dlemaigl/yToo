@@ -66,6 +66,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const initializeAuth = async () => {
       const storedToken = localStorage.getItem('authToken');
+      console.log('Initializing auth with stored token:', storedToken ? 'Token found' : 'No token');
       if (storedToken) {
         try {
           // Set the token in the API client
@@ -103,6 +104,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
 
       const { accessToken, refreshToken: newRefreshToken, user: userData } = response.data;
+      
+      console.log('Login successful, setting tokens:', { accessToken: accessToken ? 'Token received' : 'No token', refreshToken: newRefreshToken ? 'Refresh token received' : 'No refresh token' });
       
       localStorage.setItem('authToken', accessToken);
       if (newRefreshToken) {

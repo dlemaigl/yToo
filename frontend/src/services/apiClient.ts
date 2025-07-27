@@ -19,12 +19,22 @@ class ApiClient {
     });
 
     this.setupInterceptors();
+    
+    // Initialize with stored token if available
+    const storedToken = localStorage.getItem('authToken');
+    if (storedToken) {
+      console.log('Initializing API client with stored token');
+      this.setAuthToken(storedToken);
+    }
   }
 
   private setupInterceptors() {
     // Request interceptor
     this.client.interceptors.request.use(
       (config) => {
+        // Debug: Log the authorization header
+        console.log('API Request:', config.method?.toUpperCase(), config.url);
+        console.log('Authorization header:', config.headers?.Authorization);
         return config;
       },
       (error) => {
@@ -105,6 +115,7 @@ class ApiClient {
   }
 
   setAuthToken(token: string | null) {
+    console.log('Setting auth token:', token ? 'Token set' : 'Token cleared');
     if (token) {
       this.client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     } else {

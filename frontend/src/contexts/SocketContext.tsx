@@ -45,22 +45,25 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
     const delay = reconnectDelayBase * Math.pow(2, reconnectAttemptsRef.current);
     reconnectAttemptsRef.current += 1;
-    
+
     setIsReconnecting(true);
     setConnectionError(null);
 
     reconnectTimeoutRef.current = setTimeout(() => {
-      if (socket && !socket.connected) {
-        socket.connect();
-      }
+      setSocket(currentSocket => {
+        if (currentSocket && !currentSocket.connected) {
+          currentSocket.connect();
+        }
+        return currentSocket;
+      });
     }, delay);
-  }, [socket]);
+  }, []);
 
   const createSocket = useCallback(() => {
     if (!user || !token) return null;
 
     const socketUrl = process.env.REACT_APP_WS_URL || 'http://localhost:3001';
-    
+
     const newSocket = io(socketUrl, {
       auth: {
         token: token
@@ -76,16 +79,40 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       setIsReconnecting(false);
       setConnectionError(null);
       reconnectAttemptsRef.current = 0;
-      clearReconnectTimeout();
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
     });
 
     newSocket.on('disconnect', (reason) => {
       console.log('Socket disconnected:', reason);
       setIsConnected(false);
-      
+
       // Only attempt reconnection for certain disconnect reasons
       if (reason === 'io server disconnect' || reason === 'transport close' || reason === 'transport error') {
-        attemptReconnect();
+        // Use a timeout to avoid calling attemptReconnect immediately
+        setTimeout(() => {
+          if (reconnectAttemptsRef.current < maxReconnectAttempts) {
+            const delay = reconnectDelayBase * Math.pow(2, reconnectAttemptsRef.current);
+            reconnectAttemptsRef.current += 1;
+
+            setIsReconnecting(true);
+            setConnectionError(null);
+
+            reconnectTimeoutRef.current = setTimeout(() => {
+              setSocket(currentSocket => {
+                if (currentSocket && !currentSocket.connected) {
+                  currentSocket.connect();
+                }
+                return currentSocket;
+              });
+            }, delay);
+          } else {
+            setIsReconnecting(false);
+            setConnectionError('Failed to reconnect after multiple attempts');
+          }
+        }, 0);
       }
     });
 
@@ -93,9 +120,29 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       console.error('Socket connection error:', error);
       setIsConnected(false);
       setConnectionError(error.message || 'Connection failed');
-      
+
       // Attempt reconnection on connection error
-      attemptReconnect();
+      setTimeout(() => {
+        if (reconnectAttemptsRef.current < maxReconnectAttempts) {
+          const delay = reconnectDelayBase * Math.pow(2, reconnectAttemptsRef.current);
+          reconnectAttemptsRef.current += 1;
+
+          setIsReconnecting(true);
+          setConnectionError(null);
+
+          reconnectTimeoutRef.current = setTimeout(() => {
+            setSocket(currentSocket => {
+              if (currentSocket && !currentSocket.connected) {
+                currentSocket.connect();
+              }
+              return currentSocket;
+            });
+          }, delay);
+        } else {
+          setIsReconnecting(false);
+          setConnectionError('Failed to reconnect after multiple attempts');
+        }
+      }, 0);
     });
 
     // Handle authentication errors
@@ -107,7 +154,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     });
 
     return newSocket;
-  }, [user, token, attemptReconnect, clearReconnectTimeout]);
+  }, [user, token]);
 
   useEffect(() => {
     const newSocket = createSocket();
@@ -116,7 +163,10 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     }
 
     return () => {
-      clearReconnectTimeout();
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
       if (newSocket) {
         newSocket.close();
       }
@@ -126,7 +176,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       setConnectionError(null);
       reconnectAttemptsRef.current = 0;
     };
-  }, [createSocket, clearReconnectTimeout]);
+  }, [createSocket]);
 
   const joinGroup = useCallback((groupId: string) => {
     if (socket && isConnected) {
@@ -141,12 +191,26 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   }, [socket, isConnected]);
 
   const reconnect = useCallback(() => {
-    if (socket && !isConnected && !isReconnecting) {
-      reconnectAttemptsRef.current = 0;
-      setConnectionError(null);
-      attemptReconnect();
-    }
-  }, [socket, isConnected, isReconnecting, attemptReconnect]);
+    setSocket(currentSocket => {
+      if (currentSocket && !isConnected && !isReconnecting) {
+        reconnectAttemptsRef.current = 0;
+        setConnectionError(null);
+
+        const delay = reconnectDelayBase * Math.pow(2, reconnectAttemptsRef.current);
+        reconnectAttemptsRef.current += 1;
+
+        setIsReconnecting(true);
+        setConnectionError(null);
+
+        reconnectTimeoutRef.current = setTimeout(() => {
+          if (currentSocket && !currentSocket.connected) {
+            currentSocket.connect();
+          }
+        }, delay);
+      }
+      return currentSocket;
+    });
+  }, [isConnected, isReconnecting]);
 
   const value: SocketContextType = {
     socket,
