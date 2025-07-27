@@ -47,7 +47,7 @@ router.post('/:id/vote',
       // Trigger majority calculation (this will be handled by the background service)
       // For now, we'll trigger it manually
       const majorityService = require('../services/majorityCalculation');
-      await majorityService.calculateMajorityForGroup(activity.groupId);
+      await majorityService.processVoteChange(activityId);
 
       res.status(201).json({
         message: 'Vote cast successfully',
@@ -113,7 +113,7 @@ router.delete('/:id/vote',
 
       // Trigger majority calculation
       const majorityService = require('../services/majorityCalculation');
-      await majorityService.calculateMajorityForGroup(activity.groupId);
+      await majorityService.processVoteChange(activityId);
 
       res.json({
         message: 'Vote removed successfully'
@@ -166,6 +166,55 @@ router.get('/group/:groupId/vote-status',
       console.error('Error fetching vote status:', error);
       res.status(500).json({
         error: 'Failed to fetch vote status'
+      });
+    }
+  }
+);
+
+// Check if user has voted for a specific activity
+router.get('/:id/my-vote',
+  authenticateToken,
+  applyRateLimit('general'),
+  validateUUID('id'),
+  async (req, res) => {
+    try {
+      const { id: activityId } = req.params;
+      const userId = req.user.id;
+
+      // Check if activity exists
+      const activity = await Activity.findById(activityId);
+      if (!activity) {
+        return res.status(404).json({
+          error: 'Activity not found'
+        });
+      }
+
+      // Check if user is a member of the group
+      const group = await Group.findById(activity.groupId);
+      if (!group) {
+        return res.status(404).json({
+          error: 'Group not found'
+        });
+      }
+
+      const isMember = await group.isMember(userId);
+      if (!isMember) {
+        return res.status(403).json({
+          error: 'Access denied. You are not a member of this group.'
+        });
+      }
+
+      // Check if user has voted for this activity
+      const hasVoted = await Vote.hasUserVoted({ activityId, userId });
+
+      res.json({
+        hasVoted
+        // Note: No vote counts, percentages, or other users' votes exposed
+      });
+    } catch (error) {
+      console.error('Error checking vote status:', error);
+      res.status(500).json({
+        error: 'Failed to check vote status'
       });
     }
   }

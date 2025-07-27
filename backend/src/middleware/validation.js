@@ -217,11 +217,17 @@ const validateRefreshToken = validateSchema(schemas.refreshToken);
 // Content-Type validation middleware
 const validateContentType = (req, res, next) => {
   if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
-    const contentType = req.get('Content-Type');
-    if (!contentType || !contentType.includes('application/json')) {
-      return res.status(415).json({
-        error: 'Content-Type must be application/json'
-      });
+    const contentLength = req.get('Content-Length');
+    const hasBody = contentLength && parseInt(contentLength) > 0;
+    
+    // Only validate content type if there's actually a body
+    if (hasBody) {
+      const contentType = req.get('Content-Type');
+      if (!contentType || !contentType.includes('application/json')) {
+        return res.status(415).json({
+          error: 'Content-Type must be application/json'
+        });
+      }
     }
   }
   next();

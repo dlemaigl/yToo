@@ -2,6 +2,7 @@ const express = require('express');
 const Group = require('../models/Group');
 const User = require('../models/User');
 const Activity = require('../models/Activity');
+const Vote = require('../models/Vote');
 const { authenticateToken } = require('../middleware/auth');
 const { validateGroupCreation, validateActivityCreation, validateUUID } = require('../middleware/validation');
 const { applyRateLimit } = require('../middleware/rateLimiting');
@@ -338,5 +339,49 @@ router.get('/:id/activities',
     });
   }
 });
+
+// Get user's voting status for all activities in a group
+router.get('/:id/my-votes', 
+  authenticateToken, 
+  validateUUID('id'),
+  async (req, res) => {
+    try {
+      const { id: groupId } = req.params;
+      const userId = req.user.id;
+
+      // Check if group exists
+      const group = await Group.findById(groupId);
+      if (!group) {
+        return res.status(404).json({
+          error: 'Group not found'
+        });
+      }
+
+      // Check if user is a member of the group
+      const isMember = await group.isMember(userId);
+      if (!isMember) {
+        return res.status(403).json({
+          error: 'Access denied. You are not a member of this group.'
+        });
+      }
+
+      // Get user's vote status for all activities in the group
+      const voteStatus = await Vote.getUserVoteStatusForGroup(userId, groupId);
+
+      res.json({
+        votes: voteStatus.map(status => ({
+          activityId: status.activityId,
+          hasVoted: status.hasVoted
+          // Note: No vote counts, percentages, or other users' votes exposed
+        }))
+      });
+    } catch (error) {
+      console.error('Error fetching user voting status:', error);
+      res.status(500).json({
+        error: 'Failed to fetch voting status'
+      });
+    }
+  }
+);
 
 module.exports = router;
